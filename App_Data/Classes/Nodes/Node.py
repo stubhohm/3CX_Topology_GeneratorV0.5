@@ -1,5 +1,5 @@
-from ...Keys import User, IVR, Queue, RingGroup, Name, Number, Is_DID
-from ...Modules import math
+from ...Keys import User, IVR, Queue, RingGroup, Name, Number, Is_DID, Height, Width, Background, Line, Text
+from ...Modules import math, tk, font
 from ..Data_Structures.Vectors.Vector2 import Vector2
 
 class Node():
@@ -10,18 +10,20 @@ class Node():
         self._forward_to_extensions:list[str] = []
         self.parented:bool = False
         self.is_did = False
-        self.type = None
+        self.type = 'No Type'
         self.highlight = False
         self.position = Vector2()
         self.oval_id = None
         self.text_id = None
         self.lock = False
+        self.hide_edges = False
+        self.weight = 1
 
     def define(self, name, number, type):
             self._name = name
             self._number = number
             self.type = type
-
+            
     def set_name(self, new_name:str):
         self._name = new_name
 
@@ -176,255 +178,103 @@ class Node():
                 continue
             child.highlight_children(visited_nodes, highlight_tgt)
 
-    def get_point_on_oval(self, x_origin, y_origin, width, height, angle):
-        x = x_origin + (width / 2) * math.cos(angle)
-        y = y_origin + (height / 2) * math.sin(angle)
+    def get_point_on_oval(self, x_origin, y_origin, distance, radians):
+        x = x_origin + (distance / 2) * math.cos(radians)
+        y = y_origin + (distance / 2) * math.sin(radians)
         return x, y
 
-    def initial_position(self, designated_pos:tuple[int, int], screen_size:tuple[int, int], is_radial:bool, depth = 0, visited_nodes = None, rotation = 0):
-        if visited_nodes is None:
-            visited_nodes = []
-        x, y = designated_pos
-        if self.get_name() in visited_nodes:
+    def unlock_all_children(self):
+        if not self.lock:
             return
-        self.position.set_value(x , y)
-        children = self.get_children()
-        children_count = len(children)
-        height, width = screen_size
-        depth += 1
-        visited_nodes.append(self.get_name())
-        for i, child in enumerate(children):
+        else: self.lock = False
+        for child in self.get_children():
             if not isinstance(child, Node):
                 continue
-            degrees = int((i / children_count) * 360)
-            degrees -= rotation
-            child_x, child_y = self.get_point_on_oval(x, y, (width / (depth + 3)), ( height/ (depth + 3)), degrees)
-            child.initial_position((child_x, child_y), screen_size, is_radial, depth, visited_nodes, rotation)
+            child.unlock_all_children()
+
+    def initial_position(self, designated_pos:tuple[int, int], is_radial:bool, depth = 0, rotation = 0, draw_users = False):
+        if self.lock:
+            return
+        else:
+            self.lock = True
+        x, y = designated_pos
+        self.position.set_value(x , y)            
+        
+        children = self.get_children()
+        if len(children) == 0:
+            return
+        unique_children, unique_names = [], []
+        for child in children:
+            if not draw_users and child.type == User:
+                continue
+            if child.get_name() not in unique_names:
+                unique_children.append(child)
+                unique_names.append(child.get_name())
+        if len(unique_children) == 0:
+            return
+        
+        distance = 500
+        depth += 1
+        distance = 500 / depth
+        radian_incriment = 2 * math.pi / len(unique_children)
+        
+        for i, child in enumerate(unique_children):
+            if not draw_users and child.type == User:
+                continue
+            if not isinstance(child, Node):
+                continue    
+            degrees = radian_incriment * i
+            adjusted_degrees = degrees + rotation
+            child_x, child_y = self.get_point_on_oval(x, y, distance, degrees)
+            child.initial_position((child_x, child_y), is_radial, depth, adjusted_degrees, draw_users)
 
     def print(self):
-        print("\n\n")
-        print("+++++++++++++++++++++++++++++++++++++++++++++++")
-        print(f"\nDetails for {self.get_name()}\n")
+        text = f"\n\n\nType: {self.type}"
+        if not self.is_did and not self.type == Is_DID:
+            text += f"\nExtension: {self.get_number()}"
+        text += "\n"
+        return text
 
-        print(f"Type: {self.type}")
-        if not self.is_did:
-            print(f"Extension: {self.get_number()}")
-    
+    def info_popup(self, color_pallet:dict):
+        title = f"\nDetails for {self.get_name()}"
+        body = self.print()
+        pop_up = tk.Toplevel()
+        pop_up.title("Node Details")
+        pop_up.geometry(f"450x450")
+        
+        body_font = font.Font(family="Helvetica", size=10)
+        header_font = font.Font(family="Helvetica", size=15)
+
+        frame = tk.Frame(pop_up)
+        
+
+        text_widget = tk.Text(frame, wrap="word", bg = color_pallet.get(Background, "white")) # Insert the text content
+        text_widget.tag_configure("header", font=header_font, foreground=color_pallet.get(Text, "grey"), justify="center")
+        text_widget.tag_configure("body", font=body_font, foreground=color_pallet.get(Text, "grey"))  
+
+        text_widget.insert("1.0", title, "header")
+        text_widget.insert("end", body, "body")
+        text_widget.config(state="disabled")
+
+        scrollbar = tk.Scrollbar(frame, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        
+        scrollbar.pack(side="right", fill="y")
+        text_widget.pack(expand=True, side="top", fill="both")
+        frame.pack(expand=True, fill="both")
+        pop_up.bind("<Escape>", lambda e: pop_up.destroy())
+
+    def set_weight(self, weight:int, visited_nodes:list[str]):
+        if self.weight:
+            return
+        if self.get_name() in visited_nodes:
+            return
+        visited_nodes.append(self.get_name())
+        self.weight = weight/2
+        for child in self.get_children():
+            child.set_weight(self.weight, visited_nodes)
+
     def define_node(self, node_dict:dict):
         pass
-
-
-class User_obj(Node):
-
-    def define_node(self, node_dict):
-        self.type = User
-        self.first = node_dict.get("First")
-        self.last = node_dict.get("Last")
-        if self.first and self.last:
-            name = self.first + " " + self.last
-        else: name = self.first
-        self.set_name(name)
-        self.set_number(node_dict.get(Number))
-        self.status = node_dict.get("Current Status")
-        self.vm_pin = node_dict.get("VM PIN")
-
-    def print(self):
-        super().print()
-        print(self.status)
-        print("---------------------------------------------")
-        print("\n\n\n\n\n")
-
-
-class IVR_obj(Node):
-    def __init__(self):
-        super().__init__()
-
-    def define_node(self, node_dict):
-        self.type = IVR
-        self.set_name(node_dict.get(Name))
-        self.set_number(node_dict.get(Number))
-        self.timeout_type:str = node_dict.get("Timeout Type")
-        self.timeout_destination:str = node_dict.get("Timeout DN")
-        self.forwards:dict[str, dict] = node_dict.get("Forwards")
-        ring_locations = []
-        if type(self.forwards) == dict:
-            for key in self.forwards.keys():
-                if type(key) != str:
-                    continue
-                if key.isdigit():
-                    ring_locations.append(key)
-        if type(self.timeout_destination) == str:
-            ring_locations.append(self.timeout_destination)
-        self.set_forward_to_extensions(ring_locations)
-
-
-    def print(self):
-        super().print()
-        fwd_dict = {}
-        for forward in self.forwards.values():
-            fwd_type = forward.get("Forward Type")
-            num = forward.get("Dial Number")
-            ext = forward.get("Extension")
-            for child in self.get_children():
-                if child.get_number() == ext:
-                    name = child.get_name()
-                    ext = f"{name} ({ext})"
-            value = f"{num}: {fwd_type} - {ext}"
-            if type(num) == str and num.isdigit():
-                order = int(num)
-            fwd_dict[order] = value
-        for i in range(len(fwd_dict)):
-            print(fwd_dict[i + 1])
-
-        name = ''
-        for child in self.get_children():
-            if self.timeout_destination == child.get_number():
-                name = child.get_name()
-                name = f" - {name}"
-        if self.timeout_destination:
-            timeout = f" ({self.timeout_destination})"
-        else: timeout = ""
-        print(f"\nTimeout:{self.timeout_type}{name}{timeout}")
-        print("---------------------------------------------")
-        print("\n\n\n\n\n")
-
-
-class Queue_obj(Node):
-    def __init__(self):
-        super().__init__()
-
-    def define_node(self, node_dict):
-        self.type = Queue
-        self.set_name(node_dict.get(Name))
-        self.set_number(node_dict.get(Number))
-        self.members:dict[str, dict] = node_dict.get("Members")
-        self.managers = node_dict.get("Managers")
-        if len(self.managers) > 0:
-            self.managers = sorted(self.managers)
-        self.destination = node_dict.get("Destination")
-        if self.destination:
-            self.destination = self.destination[0]
-        ring_locations = []
-        for key in self.members.keys():
-            ring_locations.append(key)
-        ring_locations.append(self.destination)
-        self.set_forward_to_extensions(ring_locations)
-
-
-    def print(self):
-        super().print()
-        member_entries = []
-        children = self.get_children()
-        name = ''
-        for child in self.get_children():
-            if self.destination == child.get_number():
-                name = child.get_name()
-                name = f" - {name}"        
-        
-        print(f"Timeout{name} ({self.destination})\n")
-        
-        print("-- Managers --")
-        for manager in self.managers:
-            name = ""
-            for child in children:
-                if manager == child.get_number():
-                    name = child.get_name()
-                    name = f": {name}"
-                    break
-            print(f"{manager}{name}")
-
-        for members in self.members.values():
-            number = members.get("Number")
-            name, agent_status = "", ""
-            for child in children:
-                if number == child.get_number():
-                    name = child.get_name()
-                    if isinstance(child, User_obj):
-                        agent_status = f"\n\tAgent Status: {child.status}"
-                    break
-            entry = f"{name}\n\tExt: {number}\n\tQueue Status: {members.get("Status")}{agent_status}"
-            member_entries.append(entry)
-        sorted_entries = sorted(member_entries)
-        
-        print("\n-Members-")
-        for member in sorted_entries:
-            print(member)
-        print("---------------------------------------------")
-        print("\n\n\n\n\n")
-
-class RingGroup_obj(Node):
-    def __init__(self):
-        super().__init__()
-
-
-    def define_node(self, node_dict:dict):
-        self.type = RingGroup
-        self.set_name(node_dict.get(Name))
-        self.set_number(node_dict.get(Number))
-        self.destination = node_dict.get("Destination")
-        self.ring_strategy = node_dict.get("RingStrategy")
-        if self.destination:
-            self.destination = self.destination[0]
-        self.members = node_dict.get("Members")
-        forwards_to = list(self.members)
-        forwards_to.append(self.destination)
-        self.set_forward_to_extensions(forwards_to)
-        
-        
-    def print(self):
-        super().print()
-        children = self.get_children()
-        name = ''
-        for child in self.get_children():
-            if self.destination == child.get_number():
-                name = child.get_name()
-                name = f" - {name} -"
-        print(f"\n#Timeout#{name} Ext: {self.destination}")
-        
-        member_entries = []
-        for number in self.members:
-            name = ""
-            status = ""
-            for child in children:
-                if number == child.get_number():
-                    name = child.get_name()
-                    if type(child) == User_obj:
-                        status =  child.status
-                        status = f"\n\tStatus: {status}"
-                        number = f"\n\tExt: {number}"
-                    break
-            entry = f"{name}{number}{status}"
-            member_entries.append(entry)
-        sorted_entries = sorted(member_entries)
-        print(f"Ring Strategy: {self.ring_strategy}")
-        print("\n-Members-")
-        for member in sorted_entries:
-            print(member)
-        print("---------------------------------------------")
-        print("\n\n\n\n\n")
-
-class DID_obj(Node):
-    def __init__(self):
-        super().__init__()
-
-    def define_node(self, node_dict):
-        self.type = Is_DID
-        self.is_did = True
-        self.set_name(node_dict.get(Name))
-        self.set_number(node_dict.get(Number))
-        self.conditions = node_dict.get("Conditions")
-        self.forward_destinations:dict = node_dict.get("Forward Destinations")
-        rings_to = []
-        if type(self.forward_destinations) == dict:
-            for destination in self.forward_destinations.values():
-                internal_dest = destination.get("Internal")
-                if type(internal_dest) != list:
-                    continue
-                if len(internal_dest) != 0:
-                    rings_to.append(internal_dest[0])
-        self.set_forward_to_extensions(rings_to)
-
-    def print(self):
-        super().print()
-        print("---------------------------------------------")
 

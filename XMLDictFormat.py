@@ -1,4 +1,5 @@
-#XML Dict
+# This is not used and it just to show what the dictionary formats are like
+# These can also be viewed as output jsons if that is toggled on.
 
 Forward_Destinations_Dict = {
     "OfficeHoursDestination" : "## regex for DN='number'",

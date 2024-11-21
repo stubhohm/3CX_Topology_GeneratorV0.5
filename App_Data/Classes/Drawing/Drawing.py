@@ -1,19 +1,22 @@
 from ...Modules import tk, math, os
 from ..Constructor.TreeBuilder import TreeBuilder
 from ...Classes.Nodes.Node import Node, Vector2
-from ...Keys import User, RingGroup, IVR, Is_DID, Queue, Root, Island, Dark_Mode, Line, HighLight, Display_Format, Lock
-from ...Keys import Unlinked_DIDs, Background, default_colors, dark_mode_colors
+from .ForceSimulation import ForceSimulation
+from ...Keys import User, RingGroup, IVR, Is_DID, Queue, Root, Island, Client, Display_Format, Link_Holiday
+from ...Keys import Line, HighLight, Display_Format, Lock, Text
+from ...Keys import Unlinked_DIDs, Background, default_colors, dark_mode_colors,Dark_Mode
 from ...Keys import Height, Width
 
 
 class Renderer():
-    def __init__(self, client_name, tree:TreeBuilder, config_dict:dict):
-        
-        self.client_name = client_name
+    def __init__(self, tree:TreeBuilder, config_dict:dict):
+        self.config_dict = config_dict
+        self.client_name = config_dict.get(Client)
         self.tree = tree
         self.show_end_users = config_dict.get(User)
         self.show_unlinked_dids = config_dict.get(Unlinked_DIDs)
         self.radial_display = config_dict.get(Display_Format)
+        self.link_holiday = config_dict.get(Link_Holiday)
         self.set_color_pallet(config_dict.get(Dark_Mode))
         self.instance_default_variables()
 
@@ -46,8 +49,10 @@ class Renderer():
         self.root.bind('<j>', self.gravity_well)
         self.root.bind('<k>', self.gravity_well)
         self.root.bind('<l>', self.node_lock)
+        self.root.bind('<h>', self.toggle_hide_edges)
         self.root.bind('<i>', self.print_info)
-
+        self.root.bind('<u>', self.simulate_nodes)
+        self.root.bind('<g>', self.simulate_nodes)
 
     def instance_default_variables(self):
         self.edges = None
@@ -66,46 +71,58 @@ class Renderer():
 
     def define_edges(self, tree:TreeBuilder):
         """Takes the input tree and gets define edges for graphing."""
-        edges = []
+        edges:set = {(1,1)}
         for node in tree.nodes.values():
-            if not node:
+            if not self.is_valid_to_draw(node):
                 continue
             parent_name = node.get_name()
-            for child_name in node.get_children_names():
-                if not child_name:
+            for child in node.get_children():
+                if not self.is_valid_to_draw(child):
                     continue
-                entry = (parent_name, child_name)
+
+                entry = (parent_name, child.get_name())
+
                 if entry not in edges:
-                    edges.append(entry)
+                    edges.add(entry)
+        print(len(edges))
         self.edges = edges
       
     def generate_graph(self):
         """Takes defined edges and generates positions based on those edges."""
         # Create a directed graph (for tree-like structure)
-        screen_size = (Height, Width)
-        root_x = int(Width / 2)
-        island_x = int(Width / 2)
-        island_y = int(Height / 16 * 15)
-        if self.radial_display:
-            root_y = int(Height / 2)
-        else:
-            root_y = int(Height / 8)
-        child_pos = (root_x, root_y)
-        self.tree.nodes[Root].initial_position(child_pos, screen_size, self.radial_display)
-        child_pos = (island_x, island_y)
-        self.tree.nodes[Island].initial_position(child_pos, screen_size, self.radial_display)
+        drawn_nodes = []
+        for node in self.tree.nodes.values():
+            if self.is_valid_to_draw(node):
+                drawn_nodes.append(node)
+
+        nodes_count = len(drawn_nodes)
+        sqr_size = int(math.sqrt(nodes_count))
+        width_space = Width / sqr_size
+        height_space = Height / sqr_size        
+        for i, node in enumerate(drawn_nodes):
+            column = i % sqr_size
+            row = int(i / sqr_size)
+            x = (column) * width_space
+            y = (row) * height_space
+            node.position.set_value(x,y)
+
+        self.tree.nodes[Root].unlock_all_children()
+        self.tree.nodes[Island].unlock_all_children()
 
     def is_valid_to_draw(self, node:Node):
         """Checks is node is valid based on what node types are shown."""
         if not isinstance(node, Node):
             return False
-        if not self.show_end_users:
-            if node.type == User:
-                return False
-        if not self.show_unlinked_dids:
-            if node.type == Is_DID:
-                if len(node.get_children_names()) == 0:
+        if node.type == User:
+            if not self.show_end_users:
+                return False 
+        if node.type == Is_DID:
+            if not self.show_unlinked_dids:
+                if len(node.get_children_names()) < 2:
                     return False
+        if not self.link_holiday:
+            if node.get_number() == "HOL":
+                return False
         return True
     
     def draw_graph(self):
@@ -148,7 +165,7 @@ class Renderer():
         x, y = position.getX(), position.getY()
         node_name = node.get_name()
         color = self.color_coding.get(node.type, 'lightblue')
-        text_color = self.color_coding.get(Line, "grey")
+        text_color = self.color_coding.get(Text, "grey")
         outline_color = "black"
         if node.highlight:
             outline_color = self.color_coding.get(HighLight)
@@ -191,11 +208,15 @@ class Renderer():
                 x0, y0 = node1_obj.position.getX(), node1_obj.position.getY()
                 x1, y1 = node2_obj.position.getX(), node2_obj.position.getY()
                 x0_adj, y0_adj, x1_adj, y1_adj = self.adjust_for_radius(x0, y0, x1, y1)
-                self.canvas.itemconfig(edge_id, fill = "grey")
+                line_color = self.color_coding.get(Line, "grey")
                 if node1_obj.highlight and node2_obj.highlight:
                     line_color = self.color_coding.get(HighLight, "grey")
-                    self.canvas.itemconfig(edge_id, fill = line_color)
-                
+                if node1_obj.hide_edges or node2_obj.hide_edges:
+                    self.canvas.itemconfigure(edge_id, state="hidden")
+                else:
+                    self.canvas.itemconfigure(edge_id, state="normal")
+                self.canvas.itemconfig(edge_id, fill = line_color)
+
                 self.canvas.itemconfig(node1_obj.oval_id, outline ="black")
                 self.canvas.itemconfig(node2_obj.oval_id, outline ="black")
                 if node1_obj.highlight:
@@ -243,7 +264,6 @@ class Renderer():
                     self.update_edges(node)
                 break
             
-
     def on_drag(self, event):
         """Handle node dragging."""
         if self.selected_node:
@@ -373,13 +393,42 @@ class Renderer():
         primary_node.lock = not primary_node.lock
         if primary_node.lock:
             self.canvas.itemconfig(primary_node.oval_id, outline = self.color_coding.get(Lock, "grey"))
+        else:
+            self.canvas.itemconfig(primary_node.oval_id, outline = "black")
 
     def print_info(self, event):
         if not self.selected_node:
             return
-        self.selected_node.print()
+        self.selected_node.info_popup(self.color_coding)
+
+    def toggle_hide_edges(self, event):
+        if not self.selected_node:
+            return
+        self.selected_node.hide_edges = not self.selected_node.hide_edges
+        self.update_edges(self.selected_node)
 
     def on_release(self, event):
         """Reset the selected node after releasing the mouse button."""
         self.selected_node = None
         self.marked_node = None
+
+    def simulate_nodes(self, event):
+        force_sim = ForceSimulation()
+        drawn_nodes:dict[str, Node] = {}
+        for node in self.tree.nodes.values():
+            if not self.is_valid_to_draw(node):
+                continue
+            drawn_nodes[node.get_name()] = node
+        gravity =  not self.config_dict.get(Display_Format)
+        for i in range(500):
+            stable = force_sim.simulate(self.edges, drawn_nodes, gravity)
+            for node in self.tree.nodes.values():
+                x, y = (node.position.getX() - self.node_radius), (node.position.getY() - self.node_radius)
+                self.canvas.coords(node.oval_id, x, y, x + (2*self.node_radius), y + (2*self.node_radius))
+                self.canvas.coords(node.text_id, x + self.node_radius, y + self.node_radius)
+                self.update_edges(node)
+            self.root.update()           
+            if i % 100 == 0:
+                print("Iterations: ", i)
+            if stable:
+                return

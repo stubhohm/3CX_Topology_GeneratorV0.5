@@ -1,5 +1,5 @@
-from ..Nodes.Node import Node, IVR_obj, RingGroup_obj, Queue_obj, DID_obj, User_obj
-from ...Keys import Name, Number, Forwards_To, Is_DID, Type
+from ..Nodes.Nodes import Node, IVRObj, RingGroupObj, QueueObj, DIDObj, UserObj
+from ...Keys import Name, Number, Forwards_To, Is_DID, Type, Link_Holiday
 from ...Keys import Root, Island, User, Merge_DIDs, IVR, Queue, RingGroup
 
 
@@ -16,6 +16,7 @@ class TreeBuilder():
         self.island.type = Island
         self.merge_dids = config_dict.get(Merge_DIDs)
         self.show_users = config_dict.get(User)
+        self.link_holiday = config_dict.get(Link_Holiday)
 
     def get_node_by_name(self, node_name:str):
         if node_name in self.nodes.keys():
@@ -28,11 +29,6 @@ class TreeBuilder():
         for node in self.nodes.keys():
             node_names.append(node)
         return node_names
-
-    def print_node_names(self):
-        """debugging"""
-        for node in self.nodes.values():
-            print(node.get_name())
 
     def complete_addition(self):
         """Links all Nodes to either Root or Island and adds terminating children, Usually user numbers."""        
@@ -74,16 +70,34 @@ class TreeBuilder():
             if self.nodes.get(child.get_name()):
                 del self.nodes[child.get_name()]
             DID_children = child.get_children()
-            if len(DID_children) == 1 and DID_children[0].type == User:
-                if not self.show_users:
-                    continue
+            
+            user = False
+            for child in DID_children:
+                if child.type == User and not self.show_users:
+                    user = True
+            if user:continue
+
             if DID_children not in unique_DID_children:
                 unique_DID_children.append(DID_children)
 
         for DID_children in unique_DID_children:
-            merged_did = Node()
-            names = [child.get_name() for child in DID_children ]
-            merged_did.define(f"Merged for: {names}", {len(unique_DID_children)}, Is_DID)
+            merged_did = DIDObj()
+            names = [child.get_name() for child in DID_children]
+            destinations = {}
+            for i, name in enumerate(names):
+                child = DID_children[i]
+                destinations[f"Merged Destination {i + 1}"] = { "To" : child.type,
+                                                        "Internal" : [child.get_number()]}
+                
+            name = f"Merged DIDs for: {", ".join(names)}"
+            number = len(unique_DID_children)
+            merged_did_dict = {Name : name,
+                               Number: number,
+                               "Forward Destinations": destinations,
+                               "Conditions" : {"Conditions may vary for merged DIDs." : None,
+                                               "DIDs typically handle holiday routing if not allocated elsewhere.": None}
+            }
+            merged_did.define_node(merged_did_dict)
             for children in DID_children:
                 merged_did.add_child(children)
                 self.nodes[merged_did.get_name()] = merged_did
@@ -134,9 +148,7 @@ class TreeBuilder():
     def add_object(self, new_node:Node):
         """Addes a new node to the tree given a node dictionary."""
         name = new_node.get_name()
-
         self.nodes[name] = new_node
-
         if new_node.type == Is_DID:
             self.root.add_child(new_node)
 
@@ -147,41 +159,40 @@ class TreeBuilder():
 
         self.clean_up_node_lists(new_node)
 
-
-    def construct_tree(self, node_dict:dict):
-        """Iterates over node dictionary entries and adds items."""
-        for entry in node_dict.values():
-            node = self.define_new_node(entry)
-            self.add_object(node)
-        self.complete_addition()
-        if self.merge_dids:
-            self.merge_similar_dids()
-        return self
-
-    def add_node_object(self, node_obj, node_dict:dict):
+    def add_node_object(self, node_obj, node_dict:dict[str, dict]):
         for value in node_dict.values():
             node = node_obj()
             if not isinstance(node, Node):
                 continue
+            if self.nodes.get(value.get(Name)):
+                if type(node) == UserObj:
+                    node.define_name(value)
+                    value[Name] = node.get_name()
+                name = value.get(Name) + node.type
+                value[Name] = name
             node.define_node(value)
             self.add_object(node)
+
+    def set_weights(self):
+        self.nodes.get(Root).weight = 10
+        self.nodes.get(Island).weight = 10
 
     def full_parsing(self, group_dicts:dict):
         for key in group_dicts.keys():
             node_object = None
             if key == Is_DID:
-                node_object = DID_obj
+                node_object = DIDObj
                 for value in group_dicts.get(Is_DID).values():
                     self.add_node_object(node_object, value)
                 continue
             elif key == IVR:
-                node_object = IVR_obj
+                node_object = IVRObj
             elif key == Queue:
-                node_object = Queue_obj
+                node_object = QueueObj
             elif key == RingGroup:
-                node_object = RingGroup_obj
+                node_object = RingGroupObj
             elif key == User:
-                node_object = User_obj
+                node_object = UserObj
             if node_object:
                 node_dictionarys = group_dicts.get(key)
                 self.add_node_object(node_object, node_dictionarys)

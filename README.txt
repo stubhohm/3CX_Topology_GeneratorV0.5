@@ -1,16 +1,17 @@
-Setup
++++++++++++++Setup+++++++++++
 
 Create A a virtual python environment in python version 3.12
     To do so run the command "python -m venv "desired name of your venv""
     Then run the command to activate it. "your venv name"\Scripts\activate
     your terminal should now show you are in a venv
 
-Run pip install -r Requirements.txt
+Script currently has no external dependencies.
 
 Run python main.py
 
-Click and drag to update graph as desired
 
+
+---------Usage-----------
 Sign into the 3cx admin portal for the account you would like to map. 
 Download the most recent backup of the system that is in the state you would like to map.
 Unzip the backup and put the .xml file into the "Input" directory.
@@ -25,10 +26,11 @@ Interactions:
     it can reach via the directed graph.
 
 While clicking and holding a node with either L or R Click
-    - "j" pulls direct children to the parent
-    - "k" pushes direct children from the parent
+    - "j" or scrolling down pulls direct children to the parent
+    - "k" or scrolling up pushes direct children from the parent
     - "l" will lock the node to prevent pushing or pulling
         but it can still be dragged manually
+
 
 While only left clicking and holding a node
     - "i" will print an info dump to terminal depnding on the node
