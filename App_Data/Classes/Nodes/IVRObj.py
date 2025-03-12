@@ -23,7 +23,10 @@ class IVRObj(Node):
                     ring_locations.append(ext)
         if type(self.timeout_destination) == str:
             ring_locations.append(self.timeout_destination)
+        super().define_node(node_dict)
+        ring_locations.append(self.after_hours_extension)     
         self.set_forward_to_extensions(ring_locations)
+
 
     def print(self):
         text = super().print()

@@ -21,7 +21,10 @@ class DIDObj(Node):
                     continue
                 if len(internal_dest) != 0:
                     rings_to.append(internal_dest[0])
+        super().define_node(node_dict)
+        rings_to.append(self.after_hours_extension)
         self.set_forward_to_extensions(rings_to)
+        
 
     def print(self):
         text = super().print()

@@ -60,11 +60,13 @@ class RingGroupParser(Parser):
             destination = self.get_destinations(rg_block)
             ring_strategy = self.get_item_tag(rg_block, "RingStrategy")
             members = self.get_members(rg_block)
+            after_hours = self.get_outside_hours_destination(rg_block)
             rg_dict = {
                 Name : name,
                 Number : number,
                 "RingStrategy" : ring_strategy,
                 "Destination" : destination,
+                "After Hours" : after_hours,
                 "Members" : members
             }
             ringgroup_dicts[number] = rg_dict

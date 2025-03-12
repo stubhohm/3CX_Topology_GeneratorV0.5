@@ -168,7 +168,10 @@ class TreeBuilder():
                 if type(node) == UserObj:
                     node.define_name(value)
                     value[Name] = node.get_name()
-                name = value.get(Name) + node.type
+                if not node.type:
+                    print(node.get_name())
+                    print(node.get_number())
+                name = str(value.get(Name)) + node.type
                 value[Name] = name
             node.define_node(value)
             self.add_object(node)
@@ -201,7 +204,6 @@ class TreeBuilder():
             self.merge_similar_dids()
         return self
         
-
     def print(self):
         """debugging"""
         tree_text = "\nroot"

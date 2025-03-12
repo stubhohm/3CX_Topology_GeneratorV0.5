@@ -80,6 +80,7 @@ class QueueParser(Parser):
             managers = self.get_queue_managers(q_block)
             polling_strategy = self.get_polling_strategy(q_block)
             ring_time = self.get_ring_time(q_block)
+            after_hours = self.get_outside_hours_destination(q_block)
             q_dict = {
                 Name : name,
                 Number : number,
@@ -87,7 +88,8 @@ class QueueParser(Parser):
                 "Members" : members,
                 "Managers" : managers,
                 "Strategy" : polling_strategy,
-                "Ring Time" : ring_time
+                "Ring Time" : ring_time,
+                "After Hours" : after_hours
             }
             queue_dicts[number] = q_dict
         self.print_json(queue_dicts, Queue)

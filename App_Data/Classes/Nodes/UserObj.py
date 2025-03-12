@@ -26,6 +26,7 @@ class UserObj(Node):
         self.set_number(node_dict.get(Number))
         self.status = node_dict.get("Current Status")
         self.vm_pin = node_dict.get("VM PIN")
+        super().define_node(node_dict)
 
     def print(self):
         text = super().print()

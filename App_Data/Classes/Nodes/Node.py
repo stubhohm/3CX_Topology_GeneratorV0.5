@@ -8,6 +8,7 @@ class Node():
         self._number = None
         self._children:list[Node] = []
         self._forward_to_extensions:list[str] = []
+        self.after_hours_extension:str = "Not Set"
         self.parented:bool = False
         self.is_did = False
         self.type = 'No Type'
@@ -233,6 +234,10 @@ class Node():
         if not self.is_did and not self.type == Is_DID:
             text += f"\nExtension: {self.get_number()}"
         text += "\n"
+        for child in self.get_children():
+            if self.after_hours_extension == child.get_number():
+                name = child.get_name()
+                text += f"After Hours Locatoin: {name} ({child.get_number()})\n" 
         return text
 
     def info_popup(self, color_pallet:dict):
@@ -276,5 +281,6 @@ class Node():
             child.set_weight(self.weight, visited_nodes)
 
     def define_node(self, node_dict:dict):
+        self.after_hours_extension = node_dict.get("After Hours", "Not Set")
         pass
 

@@ -51,11 +51,13 @@ class IVRParser(Parser):
             timeout_type = self.get_item_tag(ivr_data, "TimeoutForwardType")
             timeout_dn = self.get_item_tag(ivr_data, "TimeoutForwardDN")
             forwards = self.get_full_IVR_forwards(ivr_data)
+            after_hours = self.get_outside_hours_destination(ivr_data)
             ivr_item = { Name: name,
                         Number : number,
                         "Timeout Type" : timeout_type,
                         "Timeout DN" : timeout_dn,
-                        "Forwards" : forwards
+                        "Forwards" : forwards,
+                        "After Hours" : after_hours
                         }
             ivr_dicts[number] = ivr_item
         

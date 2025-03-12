@@ -111,7 +111,19 @@ class Parser():
             data = data.replace(pw, "")
         self.write_xml(data)
         return data
-        
+
+    def get_outside_hours_destination(self, data:str):
+        """Takes an Node and finds the after hours forward destinations of that IVR."""
+        fwd_destinations = self.get_item_tag(data, "OutOfOfficeHoursRoute")
+        pattern = r'(\d+)'
+        if not fwd_destinations:
+            return "Proceed Without Exception"
+        destinations = re.findall(pattern, fwd_destinations)
+        if len(destinations) > 0:
+            destination = destinations[0]
+        else: destination = "Proceed Without Exception"
+        return destination 
+
     def get_data_from_backup(self, testing = False):
         if testing:
             backup_path = self.testing_path

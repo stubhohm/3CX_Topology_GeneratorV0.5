@@ -21,6 +21,8 @@ class RingGroupObj(Node):
         if type(self.destination) == dict:
             for value in self.destination.values():
                 forwards_to.append(value)
+        super().define_node(node_dict)
+        forwards_to.append(self.after_hours_extension)
         self.set_forward_to_extensions(forwards_to)
         
         

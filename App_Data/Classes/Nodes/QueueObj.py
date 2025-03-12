@@ -27,6 +27,8 @@ class QueueObj(Node):
         for key in self.members.keys():
             ring_locations.append(key)
         ring_locations.append(self.destination)
+        super().define_node(node_dict)
+        ring_locations.append(self.after_hours_extension)  
         self.set_forward_to_extensions(ring_locations)
 
     def print(self):
