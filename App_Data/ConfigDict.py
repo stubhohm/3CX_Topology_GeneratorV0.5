@@ -1,7 +1,7 @@
 from App_Data.Keys import User, Unlinked_DIDs, Merge_DIDs, Dark_Mode, Display_Format, Make_Jsons, Scrub_Auth_IDs, Client, Link_Holiday
 
-show_end_users = False
-show_unlinked_dids = False
+show_end_users = True
+show_unlinked_dids = True
 merge_dids_that_share_a_child = True
 display_in_dark_mode = True
 show_radial_format = True
