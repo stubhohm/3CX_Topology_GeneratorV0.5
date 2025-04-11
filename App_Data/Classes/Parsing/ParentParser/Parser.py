@@ -1,11 +1,12 @@
-from ....Modules import os, re, glob, json, shutil
+from ....Modules import os, re, glob, json, shutil, time
 from ....Keys import Client
 from ....Keys import Make_Jsons, Scrub_Auth_IDs
 
 class Parser():
     def __init__(self, config_dict:dict):
-        self.input_path:str = os.path.join("App_Data", "Input", "*.xml")
-        self.testing_path:str = os.path.join("App_Data", "Input", "ExampleInput.json")
+        self.root_path:str = os.path.abspath(__file__).replace(os.path.join("App_Data","Classes", "Parsing", "ParentParser","Parser.py"), "")
+        self.input_path:str = os.path.join(self.root_path, "App_Data", "Input", "*.xml")
+        self.testing_path:str = os.path.join(self.root_path,"App_Data", "Input", "ExampleInput.json")
         self.make_json = config_dict.get(Make_Jsons)
         self.scrub_credentials = config_dict.get(Scrub_Auth_IDs)
         self.client_name = config_dict.get(Client)
@@ -34,7 +35,7 @@ class Parser():
             return None
 
     def write_xml(self, data_string:str):
-        output_path = os.path.join("App_Data", "Input", f"{self.client_name}_scrubbed.xml")
+        output_path = os.path.join(self.root_path, "App_Data", "Input", f"{self.client_name}_scrubbed.xml")
         with open(output_path, "wb") as file:
             encoded_data = data_string.encode("utf-8")
             file.write(encoded_data)
@@ -42,7 +43,7 @@ class Parser():
     def print_json(self, dictionary:dict, file_name):
         if not self.make_json:
             return
-        output_path = os.path.join("App_Data", "Output", f"{file_name}.json")
+        output_path = os.path.join(self.root_path, "App_Data", "Output", f"{file_name}.json")
         with open(output_path, "w") as file:
             json.dump(dictionary, file, indent=4)
 

@@ -2,11 +2,11 @@ from App_Data.Keys import User, Unlinked_DIDs, Merge_DIDs, Dark_Mode, Display_Fo
 
 show_end_users = True
 show_unlinked_dids = True
-merge_dids_that_share_a_child = True
+merge_dids_that_share_a_child = False
 display_in_dark_mode = True
 show_radial_format = True
 make_jsons = True
-scrub_auth_ids = True
+scrub_auth_ids = False
 link_holiday = True
 client_name = "none"
 

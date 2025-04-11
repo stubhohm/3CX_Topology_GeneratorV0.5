@@ -14,12 +14,23 @@ class UserParser(Parser):
             vm_pin = self.get_item_tag(user, "VMPIN")
             number = self.get_item_number(user)
             current_status = self.get_item_tag(user, "CurrentProfile")
+            phone_mac = self.get_item_tag(user,"MAC")
+            phone_model = self.get_item_tag(user, "ProvisioningFilename2")
+            phone_pw = ""
+            properties = self.get_tag_instances_as_list(user, "DNProperty")
+            for property in properties:
+                if "Deskphone password" == self.get_item_tag(property, "Description"):
+                    phone_pw = self.get_item_tag(property,"Value")
+                    break
             user_dict = {
                 "First" : first,
                 "Last" : last,
                 "Number" : number,
                 "Current Status" : current_status,
-                "VM PIN" : vm_pin
+                "VM PIN" : vm_pin,
+                "Phone Mac" : phone_mac,
+                "Phone Model" : phone_model,
+                "Phone Web Password" : phone_pw
             }
             users_dict[number] = user_dict
         
