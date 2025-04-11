@@ -6,7 +6,6 @@ from App_Data.ConfigDict import config_dict
 import time
 
 def main():
-    config_dict[Client] = input("What is the Clients name: ").replace(" ", "_")
     ThreeCX_dict = MergedParser(config_dict).parse_xml()
     print("Finished Parse")
     if not ThreeCX_dict:
