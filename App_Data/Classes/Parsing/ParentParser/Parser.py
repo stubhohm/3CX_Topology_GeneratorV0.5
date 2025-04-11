@@ -22,7 +22,6 @@ class Parser():
         if xml_files:
             xml_file = xml_files[0]
         else:
-            print(f"File not Found via path: {path}")
             xml_file = self.select_with_tk()
             if not xml_file:
                 return None
