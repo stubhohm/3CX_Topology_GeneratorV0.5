@@ -1,4 +1,4 @@
-from ....Modules import os, re, glob, json, shutil, time
+from ....Modules import os, re, glob, json, shutil, filedialog, time
 from ....Keys import Client
 from ....Keys import Make_Jsons, Scrub_Auth_IDs
 
@@ -11,6 +11,11 @@ class Parser():
         self.scrub_credentials = config_dict.get(Scrub_Auth_IDs)
         self.client_name = config_dict.get(Client)
 
+    def select_with_tk(self):
+        file_path = filedialog.askopenfilename().replace("/", "\\")
+        print(file_path)
+        return file_path
+
     def open_file(self, path:str):
         """ Opens XML file from the Input directory."""
         xml_files = glob.glob(path)
@@ -18,13 +23,14 @@ class Parser():
             xml_file = xml_files[0]
         else:
             print(f"File not Found via path: {path}")
-            return None
+            xml_file = self.select_with_tk()
+            if not xml_file:
+                return None
         try:
             with open(xml_file, "rb") as file:
                 text = file.read()
                 string_text = text.decode("utf-8")
             if self.scrub_credentials and "scrubbed" not in xml_file:
-                
                 new_path = path.replace("*.xml", "")
                 destination = os.path.join(new_path, "old")
                 shutil.move(xml_file, destination)
@@ -32,6 +38,7 @@ class Parser():
             return string_text
         except FileNotFoundError:
             print(f"Not able to find file with given path: {path}")
+            time.sleep(10)
             return None
 
     def write_xml(self, data_string:str):
