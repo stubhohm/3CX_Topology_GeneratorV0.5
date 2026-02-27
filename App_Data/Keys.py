@@ -22,8 +22,8 @@ Link_Holiday = "Link Holiday IVR"
 HighLight = "High Light"
 Lock = "Lock"
 
-Width = 1200
-Height = 800
+Width = 1500
+Height = 900
 
 default_colors = {Root: "red",
                 Island: "yellow",  

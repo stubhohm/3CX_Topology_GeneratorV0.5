@@ -65,16 +65,19 @@ class TreeBuilder():
         new_root = Node()
         new_root.set_name(Root)
         new_root.type = Root
+        print("Root Children:")
+        print(len(root_node.get_children()))
         for child in root_node.get_children():
-
+            
             if self.nodes.get(child.get_name()):
                 del self.nodes[child.get_name()]
             DID_children = child.get_children()
             
+            # Check to hide user DIDs
             user = False
             for child in DID_children:
-                if child.type == User and not self.show_users:
-                    user = True
+                if type(child) == UserObj and not self.show_users:
+                    user = True                 
             if user:continue
 
             if DID_children not in unique_DID_children:
@@ -103,6 +106,8 @@ class TreeBuilder():
                 self.nodes[merged_did.get_name()] = merged_did
                 new_root.add_child(merged_did)
             
+        print("New Root Children")
+        print(len(new_root.get_children()))
         self.nodes[Root] = new_root
 
     def check_if_child_of_existing_node(self, new_node:Node):
